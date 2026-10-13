@@ -1,0 +1,7 @@
+opencv-python>=4.9.0
+mediapipe>=0.10.11
+torch>=2.2.0
+torchvision>=0.17.0
+facenet-pytorch
+pynput
+numpy<2.0.0
