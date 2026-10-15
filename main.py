@@ -3,9 +3,11 @@ from src.services.monitoring_service import MonitoringService
 
 def main():
     try:
-        # threshold=0.85 es la tolerancia (menor a 0.85 = autorizado)
-        # max_unrecognized_seconds=3 da 3 segundos de tolerancia antes de bloquear
-        monitor = MonitoringService(threshold=0.85, max_unrecognized_seconds=3)
+        # Inicializamos el servicio con el nuevo flujo de Privacidad + Bloqueo por entrada
+        monitor = MonitoringService(
+            threshold=0.85,              # Tolerancia de reconocimiento facial
+            check_interval_seconds=0.3   # Evaluación de IA cada 300 ms (eficiente)
+        )
         monitor.start_monitoring()
     except Exception as e:
         print(f"\n[Error] {e}")

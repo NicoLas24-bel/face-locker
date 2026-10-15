@@ -5,10 +5,12 @@ import time
 from src.domain.face_recognizer import FaceRecognizer
 from src.infrastructure.storage import LocalStorage
 from src.infrastructure.lock_manager import LockManager
+from src.infrastructure.privacy_overlay import PrivacyOverlay
+from src.infrastructure.input_listener import InputListener
 
 class MonitoringService:
-    def __init__(self, threshold=0.85, max_unrecognized_seconds=3):
-        print("[Monitoreo] Cargando servicio de vigilancia...")
+    def __init__(self, threshold=0.85, check_interval_seconds=0.3):
+        print("[Monitoreo] Cargando servicio con Telón de Privacidad y Bloqueo por Entrada...")
         self.storage = LocalStorage()
         self.settings = self.storage.load_settings()
         
@@ -16,73 +18,81 @@ class MonitoringService:
         self.master_profile = self.storage.load_profile()
         
         if self.master_profile is None:
-            raise FileNotFoundError("No se encontró 'master_profile.npy'. Completa el registro (Fase 4) primero.")
+            raise FileNotFoundError("No se encontró perfil facial. Ejecuta el registro primero.")
             
         self.recognizer = FaceRecognizer()
         self.lock_manager = LockManager()
+        self.overlay = PrivacyOverlay()
+        
+        # Bandera para saber si un intruso tocó los periféricos
+        self.unauthorized_input_detected = False
+        
+        # Iniciar escuchador de teclado/mouse
+        self.input_listener = InputListener(on_input_detected_callback=self._trigger_hard_lock)
+        
         self.threshold = threshold
-        self.max_unrecognized_seconds = max_unrecognized_seconds
+        self.check_interval = check_interval_seconds
+
+    def _trigger_hard_lock(self):
+        """Se activa si alguien toca el mouse/teclado en modo privacidad."""
+        self.unauthorized_input_detected = True
 
     def start_monitoring(self):
         cap = cv2.VideoCapture(self.camera_index)
-        print(f"\n--- MONITOREO ACTIVO (Cámara {self.camera_index}) ---")
-        print("El sistema vigilará tu rostro. Presiona 'ESC' en la ventana para salir.")
+        cap.set(cv2.CAP_PROP_BUFFERSIZE, 1)
 
-        unrecognized_start_time = None
+        print("\n--- MONITOREO INTELIGENTE ACTIVO ---")
+        last_check_time = 0
+        is_privacy_active = False
 
         while cap.isOpened():
+            # 1. Si alguien tocó el mouse/teclado mientras no estabas, BLOQUEO DURO INMEDIATO
+            if self.unauthorized_input_detected:
+                print("\n[ALERTA DE SEGURIDAD] ¡Interacción física detectada sin autorización! Bloqueando SO...")
+                self.input_listener.stop()
+                self.overlay.hide()
+                cap.release()
+                self.lock_manager.lock()
+                break
+
             ret, frame = cap.read()
             if not ret:
-                print("Error al leer la cámara.")
                 break
 
-            frame = cv2.flip(frame, 1)
-            display_frame = frame.copy()
+            current_time = time.time()
 
-            # Extraer el vector del rostro actual
-            current_embedding = self.recognizer.get_embedding(frame)
+            # 2. Análisis de rostro cada 300ms
+            if current_time - last_check_time >= self.check_interval:
+                last_check_time = current_time
+                current_embedding = self.recognizer.get_embedding(frame)
 
-            if current_embedding is not None:
-                # Calcular la distancia euclidiana entre el rostro actual y tu perfil guardado
-                distance = np.linalg.norm(self.master_profile - current_embedding)
-                is_authorized = distance < self.threshold
+                is_authorized = False
+                if current_embedding is not None:
+                    distance = np.linalg.norm(self.master_profile - current_embedding)
+                    is_authorized = distance < self.threshold
 
+                # --- MÁQUINA DE ESTADOS ---
                 if is_authorized:
-                    unrecognized_start_time = None
-                    color = (0, 255, 0) # Verde
-                    status = f"AUTORIZADO (Distancia: {distance:.2f})"
+                    # SI ERES TÚ: Quita el telón de privacidad si estaba puesto
+                    if is_privacy_active:
+                        print("[Seguridad] Rostro verificado. Desactivando modo privacidad...")
+                        self.overlay.hide()
+                        self.input_listener.stop()
+                        is_privacy_active = False
                 else:
-                    color = (0, 0, 255) # Rojo
-                    status = f"DESCONOCIDO (Distancia: {distance:.2f})"
-                    if unrecognized_start_time is None:
-                        unrecognized_start_time = time.time()
-            else:
-                color = (0, 0, 255)
-                status = "NO SE DETECTA ROSTRO"
-                if unrecognized_start_time is None:
-                    unrecognized_start_time = time.time()
+                    # SI NO ERES TÚ O TE ALEJASTE: Muestra el telón de privacidad
+                    if not is_privacy_active:
+                        print("[Seguridad] Rostro ausente. Activando telón de privacidad...")
+                        self.overlay.show()
+                        self.input_listener.start()
+                        is_privacy_active = True
 
-            # Lógica del temporizador de bloqueo
-            if unrecognized_start_time is not None:
-                elapsed = time.time() - unrecognized_start_time
-                time_left = max(0.0, self.max_unrecognized_seconds - elapsed)
-                
-                cv2.putText(display_frame, f"ALERTA: Bloqueando en {time_left:.1f}s", (20, 90), 
-                            cv2.FONT_HERSHEY_SIMPLEX, 0.7, (0, 0, 255), 2)
+            # Actualizar ventana de Tkinter si está activa
+            if is_privacy_active:
+                self.overlay.update()
 
-                if elapsed >= self.max_unrecognized_seconds:
-                    print("\n[ALERTA] Usuario no reconocido o ausente. Ejecutando bloqueo...")
-                    cv2.destroyAllWindows()
-                    cap.release()
-                    self.lock_manager.lock()
-                    break
-
-            cv2.putText(display_frame, status, (20, 50), 
-                        cv2.FONT_HERSHEY_SIMPLEX, 0.8, color, 2)
-            cv2.imshow('Vigilancia de Seguridad', display_frame)
-
-            if cv2.waitKey(100) & 0xFF == 27: # ESC para salir voluntariamente
-                break
+            time.sleep(0.01)
 
         cap.release()
-        cv2.destroyAllWindows()
+        self.overlay.hide()
+        self.input_listener.stop()
