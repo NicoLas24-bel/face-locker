@@ -13,12 +13,12 @@ class PoseEstimator:
         
         # Coordenadas 3D genéricas de un rostro humano
         self.face_3d = np.array([
-            [0.0, 0.0, 0.0],            
-            [0.0, -330.0, -65.0],       
-            [-225.0, 170.0, -135.0],    
-            [225.0, 170.0, -135.0],     
-            [-150.0, -150.0, -125.0],   
-            [150.0, -150.0, -125.0]     
+            [0.0, 0.0, 0.0],            # Punta de la nariz
+            [0.0, -330.0, -65.0],       # Barbilla
+            [-225.0, 170.0, -135.0],    # Esquina ojo izquierdo
+            [225.0, 170.0, -135.0],     # Esquina ojo derecho
+            [-150.0, -150.0, -125.0],   # Comisura boca izquierda
+            [150.0, -150.0, -125.0]     # Comisura boca derecha
         ], dtype=np.float64)
 
     def get_pose(self, image):
@@ -52,17 +52,15 @@ class PoseEstimator:
         rmat, _ = cv2.Rodrigues(rot_vec)
         angles, _, _, _, _, _ = cv2.RQDecomp3x3(rmat)
         
-        pitch = angles[0] * 360
-        yaw = angles[1] * 360
+        # RQDecomp3x3 entrega los ángulos en grados directo (rango normal aprox. -180 a 180)
+        pitch = angles[0]
+        yaw = angles[1]
 
+        # Umbrales ajustados para detectar la posición de la cabeza
         direction = "Frente"
-        if yaw < -12:
+        if yaw < -10:
             direction = "Izquierda"
-        elif yaw > 12:
+        elif yaw > 10:
             direction = "Derecha"
-        elif pitch < -10:
-            direction = "Abajo"
-        elif pitch > 15:
-            direction = "Arriba"
 
         return pitch, yaw, direction

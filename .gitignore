@@ -25,3 +25,9 @@ Thumbs.db
 
 # Logs
 *.log
+
+
+data
+data/*
+/data
+
