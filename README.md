@@ -1,6 +1,6 @@
 # 🔒 FaceLocker
 
-> **Seguridad biométrica facial en tiempo real para tu PC.** FaceLocker monitorea continuamente la presencia del usuario autorizado frente a la pantalla y bloquea el sistema operativo automáticamente cuando detecta una cara desconocida o ninguna cara.
+> **Seguridad biométrica facial en tiempo real para tu PC.** FaceLocker monitorea continuamente la presencia del usuario autorizado frente a la pantalla y bloquea el sistema operativo automáticamente cuando detecta ninguna cara. El objetivo es la maxima privacidad y seguridad dentro de un entorno, en ocaciones en los que no hay tiempo para suspender la pc Facelocker te protege sin que tengas que buscar un boton de bloqueo.
 
 ---
 
