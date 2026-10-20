@@ -3,9 +3,9 @@
 > **Seguridad biométrica facial en tiempo real para tu PC.**
 FaceLocker es una solución de seguridad local que monitorea de forma continua la presencia del usuario frente a la pantalla mediante visión computacional. Si el sistema detecta que el usuario autorizado se ausenta, activa automáticamente el modo de privacidad y bloquea/desbloquea la sesión en milisegundos sin requerir intervención manual.
 
-    Problema que resuelve: Elimina el riesgo de exposición de información confidencial en entornos de trabajo cuando no hay tiempo de bloquear el equipo manualmente.
+Problema que resuelve: Elimina el riesgo de exposición de información confidencial en entornos de trabajo cuando no hay tiempo de bloquear el equipo manualmente.
 
-    Destacados técnicos: Análisis de flujo de video en tiempo real, detección biométrica de bajo impacto en recursos y ejecución de comandos nativos del sistema operativo.
+Destacados técnicos: Análisis de flujo de video en tiempo real, detección biométrica de bajo impacto en recursos y ejecución de comandos nativos del sistema operativo.
 
 ---
 
