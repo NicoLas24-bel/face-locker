@@ -27,7 +27,6 @@ Thumbs.db
 *.log
 
 
-data
-data/*
-/data
+# Datos biométricos locales (no versionar: contienen información personal)
+data/
 
